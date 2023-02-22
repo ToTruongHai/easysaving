@@ -9,7 +9,7 @@ import TimeInput from "@/components/TimeInput";
 import useRefForm from "@/hooks/useRefForm";
 import { FetchAPI } from "@/services/FetchService";
 import { isEmpty, isNaN, isNumber, isString } from "lodash-es";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { unstable_batchedUpdates } from "react-dom";
 import { formData, userData } from "./constants";
 
@@ -291,14 +291,119 @@ const HomePage = () => {
     return handleAction?.[tableAction]?.(itemId) ?? {};
   };
 
-  const renderSumCash = () =>
-    tableSaving
+  const getSumCash = tableSaving?.reduce(
+    (partialSum: any, a: any) => partialSum + parseInt(a?.cash),
+    0
+  );
+  const getPercentage = (getSumCash * (8.8 / 12) * 12) / 100;
+
+  const renderSumCash = () => getSumCash?.toLocaleString();
+  const renderExtra = () => getPercentage.toLocaleString();
+
+  const datediff = (first: any, second: any) => {
+    return Math.round((second - first) / (1000 * 60 * 60 * 24));
+  };
+  const parseDate = (str: any) => {
+    var mdy = str.split("-");
+    return new Date(mdy[0], mdy[1] - 1, mdy[2]);
+  };
+  const formatDate = (date: any) => {
+    let d = new Date(date),
+      month = "" + (d.getMonth() + 1),
+      day = "" + d.getDate(),
+      year = d.getFullYear();
+
+    if (month.length < 2) month = "0" + month;
+    if (day.length < 2) day = "0" + day;
+
+    return [year, month, day].join("-");
+  };
+
+  let total = 0;
+
+  const renderExtraCurrency = ({ tableSaving = [] as any }: any) => {
+    let tempDate = "";
+    tableSaving?.forEach((item: any) => {
+      if (tempDate === "") {
+        tempDate = item?.date?.startDate;
+        const otherDate = tableSaving?.filter(
+          (e: any) => e?.date?.startDate !== tempDate
+        );
+
+        const sameDate = tableSaving?.filter(
+          (e: any) => e?.date?.startDate === tempDate
+        );
+
+        const cash = sameDate?.reduce(
+          (partialSum: any, a: any) => partialSum + parseInt(a?.cash),
+          0
+        );
+        const dateCash = (cash * (8.8 / 12) * 12) / 100;
+
+        const worthDate = datediff(
+          parseDate(tempDate),
+          parseDate(formatDate(new Date()))
+        );
+
+        total += (worthDate * dateCash) / 365;
+
+        if (!isEmpty(otherDate))
+          return renderExtraCurrency({ tableSaving: otherDate });
+      }
+      if (tempDate === item?.date?.startDate) return;
+    });
+
+    return total.toLocaleString();
+  };
+
+  const renderSum = (id: any) => {
+    const _vy = tableSaving?.filter((e: any) => e.name.id === id);
+    return _vy
       ?.reduce((partialSum: any, a: any) => partialSum + parseInt(a?.cash), 0)
       .toLocaleString();
+  };
+
+  const renderSummary = () => {
+    return (
+      <div className="flex w-full justify-between">
+        {/* LEFT */}
+        <div className="py-5 text-violet-600 text-xl font-semibold">
+          <div className="flex justify-between gap-10">
+            Tổng của Vy:{" "}
+            <span className="text-lime-600">{renderSum(0)} VND</span>
+          </div>
+          <div className="flex justify-between gap-10">
+            Tổng của Hải:{" "}
+            <span className="text-lime-600">{renderSum(1)} VND</span>
+          </div>
+          <div className="flex justify-between gap-10">
+            Tổng Tiền Gửi:{" "}
+            <span className="text-lime-600">{renderSumCash()} VND</span>
+          </div>
+        </div>
+        {/* RIGHT */}
+        <div className="py-5 text-violet-600 text-xl font-semibold">
+          <div className="flex justify-between gap-10">
+            Ngày Đáo Hạn: <span className="text-lime-600"> 13 / 2 / 2024</span>
+          </div>
+          <div className="flex justify-between gap-10">
+            Lãi Tạm Tính (8.8%):{" "}
+            <span className="text-lime-600">{renderExtra()} VND</span>
+          </div>
+          <div className="flex justify-between gap-10">
+            Lãi Hiện Có:{" "}
+            <span className="text-lime-600">
+              {renderExtraCurrency({ tableSaving })} VND
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <>
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-4 pl-3">
         {loading && (
           <div className="w-full bg-teal-400 flex item-center justify-center col-span-3 py-20">
             <h3 className="text-violet-600 text-2xl font-semibold">
@@ -312,15 +417,7 @@ const HomePage = () => {
             loading && "invisible"
           } flex flex-col `}
         >
-          <span className="py-5 text-violet-600 text-2xl font-semibold">
-            <div className="flex justify-between gap-5">
-              Tổng Tiền Gửi:{" "}
-              <span className="text-lime-600">{renderSumCash()} VND</span>
-            </div>
-            {/* <div className="flex justify-between gap-5">
-              Tiền Lải (8.8%): <span className="text-lime-600"> VND</span>
-            </div> */}
-          </span>
+          {renderSummary()}
           <Table
             className="w-full"
             data={tableSaving}
