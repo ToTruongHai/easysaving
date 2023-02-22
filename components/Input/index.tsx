@@ -15,6 +15,15 @@ type Props = {
   validation?: (e: any) => void;
   onBlur?: (e: any) => void;
   pattern?: string;
+  inputmode?:
+    | "search"
+    | "text"
+    | "email"
+    | "tel"
+    | "url"
+    | "none"
+    | "numeric"
+    | "decimal";
 };
 
 const Input = ({
@@ -26,6 +35,7 @@ const Input = ({
   type,
   onBlur,
   pattern,
+  inputmode,
 }: Props) => {
   const { required, min, max, from, to } = valid ?? {};
 
@@ -43,6 +53,7 @@ const Input = ({
       onBlur={validation || onBlur}
       value={value}
       pattern={pattern}
+      inputMode={inputmode}
     />
   );
 };

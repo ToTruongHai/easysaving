@@ -159,6 +159,23 @@ const HomePage = () => {
         [FIELD_TYPE?.INPUT]: (data: any) => {
           const isCash = data?.name === "cash";
 
+          if (isCash)
+            return (
+              <FormItem
+                label={data?.label}
+                name={data?.name}
+                rules={[data?.rules]}
+                key={index}
+              >
+                <Input
+                  type="text"
+                  inputmode="numeric"
+                  placeholder={data?.placeholder}
+                  pattern={`^[0-9.,\b]+$`}
+                />
+              </FormItem>
+            );
+
           return (
             <FormItem
               label={data?.label}
