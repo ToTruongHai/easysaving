@@ -5,6 +5,7 @@ import editIcon from "../../public/icons8-pencil-64.png";
 import deleteIcon from "../../public/icons8-close-window-100.png";
 import aVy from "../../public/vy.jpeg";
 import aHai from "../../public/hai.jpeg";
+import useWindowDimensions from "@/hooks/useWindowDimension";
 
 type Props = {
   data?: any;
@@ -13,6 +14,8 @@ type Props = {
 };
 
 const Table = ({ data, action, className }: Props) => {
+  const { width = 0 } = useWindowDimensions() ?? {};
+
   const renderTableData = useMemo(() => {
     return data?.map((item: any, index: any) => {
       const isVy = item?.name?.id === 0;
@@ -23,7 +26,7 @@ const Table = ({ data, action, className }: Props) => {
             index % 2 === 0 ? "bg-gray-100" : "bg-slate-200"
           } border-b dark:bg-gray-900 dark:border-gray-700`}
         >
-          <th className="px-6 py-4">
+          <th className={`px-6 py-4 ${width <= 768 && "hidden"}`}>
             <Image
               src={isVy ? aVy : aHai}
               alt="avatar"
@@ -41,19 +44,24 @@ const Table = ({ data, action, className }: Props) => {
           >
             {item?.name?.name}
           </th>
-          <td className="px-6 py-4"> {item?.date?.startDate}</td>
-          <td className="px-6 py-4">{`${item?.hours} Giờ : ${item?.minutes} Phút`}</td>
-          <td className="px-6 py-4">{`${parseInt(
+          <td className="px-6 py-4 whitespace-nowrap">
+            {" "}
+            {item?.date?.startDate}
+          </td>
+          <td
+            className={`px-6 py-4 ${width <= 768 && "hidden"}`}
+          >{`${item?.hours} Giờ : ${item?.minutes} Phút`}</td>
+          <td className="px-6 py-4 whitespace-nowrap">{`${parseInt(
             item?.cash
-          )?.toLocaleString()} VND`}</td>
+          )?.toLocaleString()} đ`}</td>
           <td className="px-6 py-4 ">
-            <div className="flex gap-3 justtify-center item-center">
-              <Image
+            <div className="flex gap-3 justtify-center item-center w-8">
+              {/* <Image
                 src={editIcon}
                 alt="abc"
                 className="border rounded-lg border-green-500 bg-green-200 cursor-pointer h-8 w-8"
                 onClick={() => action(item?.id, "EDIT")}
-              />
+              /> */}
 
               <Image
                 src={deleteIcon}
@@ -66,7 +74,48 @@ const Table = ({ data, action, className }: Props) => {
         </tr>
       );
     });
-  }, [data]);
+  }, [data, width]);
+
+  const renderTableHead = useMemo(() => {
+    if (width > 768) {
+      return (
+        <tr>
+          <th scope="col" className="px-6 py-3"></th>
+          <th scope="col" className="px-6 py-3">
+            Họ Và Tên
+          </th>
+          <th scope="col" className="px-6 py-3">
+            Ngày Gửi <br /> (Năm - Tháng - Ngày)
+          </th>
+          <th scope="col" className="px-6 py-3">
+            Thời Gian Gửi <br />
+            (HH:MM)
+          </th>
+          <th scope="col" className="px-6 py-3">
+            Số Tiền <br />
+            (VND)
+          </th>
+          <th scope="col" className="px-6 py-3"></th>
+        </tr>
+      );
+    }
+
+    return (
+      <tr>
+        <th scope="col" className="px-6 py-3">
+          Họ Và Tên
+        </th>
+        <th scope="col" className="px-6 py-3 whitespace-nowrap">
+          Ngày Gửi
+        </th>
+
+        <th scope="col" className="px-6 py-3">
+          Số Tiền
+        </th>
+        <th scope="col" className="px-6 py-3"></th>
+      </tr>
+    );
+  }, [width]);
 
   return (
     <div
@@ -74,24 +123,7 @@ const Table = ({ data, action, className }: Props) => {
     >
       <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
         <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
-          <tr>
-            <th scope="col" className="px-6 py-3"></th>
-            <th scope="col" className="px-6 py-3">
-              Họ Và Tên
-            </th>
-            <th scope="col" className="px-6 py-3">
-              Ngày Gửi <br /> (Năm - Tháng - Ngày)
-            </th>
-            <th scope="col" className="px-6 py-3">
-              Thời Gian Gửi <br />
-              (HH:MM)
-            </th>
-            <th scope="col" className="px-6 py-3">
-              Số Tiền <br />
-              (VND)
-            </th>
-            <th scope="col" className="px-6 py-3"></th>
-          </tr>
+          {renderTableHead}
         </thead>
         <tbody>{renderTableData}</tbody>
       </table>

@@ -47,3 +47,5 @@ export const userData = {
     },
   ],
 };
+
+export const percentage = 8.8;

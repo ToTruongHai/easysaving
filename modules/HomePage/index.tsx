@@ -7,11 +7,13 @@ import Select from "@/components/Select";
 import Table from "@/components/Table";
 import TimeInput from "@/components/TimeInput";
 import useRefForm from "@/hooks/useRefForm";
+import useWindowDimensions from "@/hooks/useWindowDimension";
 import { FetchAPI } from "@/services/FetchService";
 import { isEmpty, isNaN, isNumber, isString } from "lodash-es";
+import dynamic from "next/dynamic";
 import React, { useEffect, useRef, useState } from "react";
 import { unstable_batchedUpdates } from "react-dom";
-import { formData, userData } from "./constants";
+import { formData, percentage, userData } from "./constants";
 
 type User = {
   id: number;
@@ -23,6 +25,7 @@ const ROOT = "https://api.jsonbin.io/v3/b/";
 const TABLE_BIN = "63eb060aebd26539d07dc709";
 
 const HomePage = () => {
+  const { width = 0 } = useWindowDimensions() ?? {};
   const form = useRefForm();
   const currentDate = new Date();
   const defaultValue = {
@@ -295,7 +298,7 @@ const HomePage = () => {
     (partialSum: any, a: any) => partialSum + parseInt(a?.cash),
     0
   );
-  const getPercentage = (getSumCash * (8.8 / 12) * 12) / 100;
+  const getPercentage = (getSumCash * (percentage / 12) * 12) / 100;
 
   const renderSumCash = () => getSumCash?.toLocaleString();
   const renderExtra = () => getPercentage.toLocaleString();
@@ -338,7 +341,7 @@ const HomePage = () => {
           (partialSum: any, a: any) => partialSum + parseInt(a?.cash),
           0
         );
-        const dateCash = (cash * (8.8 / 12) * 12) / 100;
+        const dateCash = (cash * (percentage / 12) * 12) / 100;
 
         const worthDate = datediff(
           parseDate(tempDate),
@@ -365,35 +368,42 @@ const HomePage = () => {
 
   const renderSummary = () => {
     return (
-      <div className="flex w-full justify-between">
+      <div className="flex w-full justify-between gap-5">
         {/* LEFT */}
-        <div className="py-5 text-violet-600 text-xl font-semibold">
-          <div className="flex justify-between gap-10">
-            Tổng của Vy:{" "}
-            <span className="text-lime-600">{renderSum(0)} VND</span>
+        <div className="py-5 text-violet-600 lg:text-xl md:text-lg sm:text-sm font-semibold">
+          <div className="flex justify-between gap-3 whitespace-nowrap">
+            Tổng của Vy: <span className="text-lime-600">{renderSum(0)} đ</span>
           </div>
-          <div className="flex justify-between gap-10">
+          <div className="flex justify-between gap-3 whitespace-nowrap">
             Tổng của Hải:{" "}
-            <span className="text-lime-600">{renderSum(1)} VND</span>
+            <span className="text-lime-600">{renderSum(1)} đ</span>
           </div>
-          <div className="flex justify-between gap-10">
+          <div className="flex justify-between gap-3 whitespace-nowrap">
             Tổng Tiền Gửi:{" "}
-            <span className="text-lime-600">{renderSumCash()} VND</span>
+            <span className="text-lime-600 whitespace-nowrap">
+              {renderSumCash()} đ
+            </span>
           </div>
         </div>
         {/* RIGHT */}
-        <div className="py-5 text-violet-600 text-xl font-semibold">
-          <div className="flex justify-between gap-10">
-            Ngày Đáo Hạn: <span className="text-lime-600"> 13 / 2 / 2024</span>
+        <div className="py-5 text-violet-600 lg:text-xl md:text-lg sm:text-sm font-semibold">
+          <div className="flex justify-between gap-3 whitespace-nowrap">
+            Ngày Đáo Hạn:{" "}
+            <span className="text-lime-600 whitespace-nowrap">
+              {" "}
+              13 / 2 / 2024
+            </span>
           </div>
-          <div className="flex justify-between gap-10">
-            Lãi Tạm Tính (8.8%):{" "}
-            <span className="text-lime-600">{renderExtra()} VND</span>
+          <div className="flex justify-between gap-3 whitespace-nowrap">
+            Lãi Tạm Tính ({percentage}%):{" "}
+            <span className="text-lime-600 whitespace-nowrap">
+              {renderExtra()} đ
+            </span>
           </div>
-          <div className="flex justify-between gap-10">
+          <div className="flex justify-between gap-3 whitespace-nowrap">
             Lãi Hiện Có:{" "}
-            <span className="text-lime-600">
-              {renderExtraCurrency({ tableSaving })} VND
+            <span className="text-lime-600 whitespace-nowrap">
+              {renderExtraCurrency({ tableSaving })} đ
             </span>
           </div>
         </div>
@@ -403,9 +413,9 @@ const HomePage = () => {
 
   return (
     <>
-      <div className="grid grid-cols-3 gap-4 pl-3">
+      <div className="grid lg:grid-cols-3 gap-4 lg:pl-3 md:pl-0 md:grid-cols-2 sm:grid-cols-1">
         {loading && (
-          <div className="w-full bg-teal-400 flex item-center justify-center col-span-3 py-20">
+          <div className="fixed w-full bg-teal-400 flex item-center justify-center col-span-3 py-20">
             <h3 className="text-violet-600 text-2xl font-semibold">
               Loading ...
             </h3>
@@ -413,18 +423,21 @@ const HomePage = () => {
         )}
 
         <div
-          className={`Left col-span-2 items-end ${
+          className={`Left lg:col-span-2 md:col-span-1 items-end ${
             loading && "invisible"
           } flex flex-col `}
         >
           {renderSummary()}
           <Table
-            className="w-full"
+            className="w-full "
             data={tableSaving}
             action={handleTableAction}
           />
         </div>
-        <div className={`Right flex justify-center ${loading && "invisible"}`}>
+        <div
+          style={{ gridRow: `${width > 768 ? "auto" : "1"}` }}
+          className={`Right flex justify-center ${loading && "invisible"}`}
+        >
           {renderForm()}
         </div>
       </div>
@@ -432,4 +445,6 @@ const HomePage = () => {
   );
 };
 
-export default HomePage;
+export default dynamic(() => Promise.resolve(HomePage), {
+  ssr: false,
+});
