@@ -13,7 +13,9 @@ import { isEmpty, isNaN, isNumber, isString } from "lodash-es";
 import dynamic from "next/dynamic";
 import React, { useEffect, useRef, useState } from "react";
 import { unstable_batchedUpdates } from "react-dom";
-import { formData, percentage, userData } from "./constants";
+import Swal from "sweetalert2";
+import { formData, userData } from "./constants";
+import { calcSum, datediff, formatDate, parseDate } from "./helpers";
 
 type User = {
   id: number;
@@ -21,8 +23,9 @@ type User = {
 };
 
 const ROOT = "https://api.jsonbin.io/v3/b/";
-// const USER_BIN = "63eb025fc0e7653a0577034f";
+const PERCENTAGE = "63eb025fc0e7653a0577034f";
 const TABLE_BIN = "63eb060aebd26539d07dc709";
+const EXPIRE_DATE = "63f5ba58c0e7653a057c3f6f";
 
 const HomePage = () => {
   const { width = 0 } = useWindowDimensions() ?? {};
@@ -42,7 +45,9 @@ const HomePage = () => {
     hours: currentDate?.getHours()?.toString(),
     minutes: currentDate?.getMinutes()?.toString(),
   };
-  const [selectUser, setSelectUser] = useState<User[]>(userData?.user);
+  const selectUser = userData?.user;
+  const [percentage, setPercentage] = useState<any>();
+  const [expire, setExpire] = useState<any>();
   const [tableSaving, setTableSaving] = useState<any>();
   const [date, setDate] = useState({
     startDate: currentDate,
@@ -50,26 +55,38 @@ const HomePage = () => {
   } as any);
   const [loading, setLoading] = useState<boolean>(false);
 
-  // const getCategoryOption = async () => {
-  //   return await FetchAPI(
-  //     {
-  //       url: `${ROOT}${USER_BIN}`,
-  //       input: {},
-  //       method: "GET",
-  //     },
-  //     async (res, status) => {
-  //       const data = (await res.json()) ?? {};
-  //       return unstable_batchedUpdates(() => {
-  //         setSelectUser(data.record.user);
-  //         form.setEditedFieldValue({
-  //           cash: parseInt("3000000").toLocaleString(),
-  //         });
-  //       });
-  //     }
-  //   ).catch((error) => {
-  //     console.error("Error:", error);
-  //   });
-  // };
+  const getPercentageAPI = async () => {
+    return await FetchAPI(
+      {
+        url: `${ROOT}${PERCENTAGE}`,
+        input: {},
+        method: "GET",
+      },
+      async (res, status) => {
+        const data = (await res.json()) ?? {};
+
+        setPercentage(data.record.percentage);
+      }
+    ).catch((error) => {
+      console.error("Error:", error);
+    });
+  };
+
+  const getExpireDateAPI = async () => {
+    return await FetchAPI(
+      {
+        url: `${ROOT}${EXPIRE_DATE}`,
+        input: {},
+        method: "GET",
+      },
+      async (res, status) => {
+        const data = (await res.json()) ?? {};
+        setExpire(data.record.expireDate);
+      }
+    ).catch((error) => {
+      console.error("Error:", error);
+    });
+  };
 
   const getTableAPI = async () => {
     setLoading(true);
@@ -130,7 +147,8 @@ const HomePage = () => {
   };
 
   useEffect(() => {
-    // getCategoryOption();
+    getExpireDateAPI();
+    getPercentageAPI();
     getTableAPI();
   }, []);
 
@@ -172,12 +190,13 @@ const HomePage = () => {
         // TYPE PICKER
         [FIELD_TYPE?.DATE_PICKER]: (data: any) => {
           const handleDateChange = (newDate: any) => {
+            const _newDate = newDate ?? defaultValue.date;
             form.setFieldsValue({
-              date: newDate,
+              date: _newDate,
             });
             return setDate({
-              startDate: new Date(newDate?.startDate),
-              endDate: new Date(newDate?.endDate),
+              startDate: new Date(_newDate?.startDate),
+              endDate: new Date(_newDate?.endDate),
             });
           };
 
@@ -213,11 +232,13 @@ const HomePage = () => {
     e.preventDefault();
     const _form = form?.getFieldsValue(true);
     const lastId = tableSaving?.[0]?.id ?? 0;
+    const isNullDate = _form?.date?.startDate === null;
     const input = {
       ..._form,
       cash: _form?.cash?.replaceAll(",", ""),
       name: selectUser?.find((e) => e.id === parseInt(_form?.name)),
       id: lastId + 1 ?? 0,
+      date: isNullDate ? defaultValue?.date : _form?.date,
     };
 
     const data = [input, ...tableSaving];
@@ -272,7 +293,7 @@ const HomePage = () => {
           {renderFormField()}
           <div className="flex items-center justify-between">
             <button
-              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mt-5"
+              className="bg-violet-500 hover:bg-violet-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mt-5"
               type="submit"
             >
               Gửi Tiền
@@ -288,39 +309,33 @@ const HomePage = () => {
       EDIT: (id: any) => {
         console.log({ id, tableAction });
       },
-      DELETE: (id: any) => deleteTableData(id),
+      DELETE: (id: any) => {
+        Swal.fire({
+          title: "Bạn chắc không?",
+          text: "Thao tác này không thể hoàn tác!",
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonColor: "#8b5cf6",
+          cancelButtonColor: "#f43f5e",
+          cancelButtonText: "Huỷ",
+          confirmButtonText: "Đồng ý xoá!",
+        }).then((result) => {
+          if (result.isConfirmed) {
+            deleteTableData(id);
+            return Swal.fire("Đã xoá!", "Dữ liệu đã xoá.", "success");
+          }
+        });
+      },
     } as any;
 
     return handleAction?.[tableAction]?.(itemId) ?? {};
   };
 
-  const getSumCash = tableSaving?.reduce(
-    (partialSum: any, a: any) => partialSum + parseInt(a?.cash),
-    0
-  );
+  const getSumCash = calcSum(tableSaving) ?? 0;
   const getPercentage = (getSumCash * (percentage / 12) * 12) / 100;
 
   const renderSumCash = () => getSumCash?.toLocaleString();
   const renderExtra = () => getPercentage.toLocaleString();
-
-  const datediff = (first: any, second: any) => {
-    return Math.round((second - first) / (1000 * 60 * 60 * 24));
-  };
-  const parseDate = (str: any) => {
-    var mdy = str.split("-");
-    return new Date(mdy[0], mdy[1] - 1, mdy[2]);
-  };
-  const formatDate = (date: any) => {
-    let d = new Date(date),
-      month = "" + (d.getMonth() + 1),
-      day = "" + d.getDate(),
-      year = d.getFullYear();
-
-    if (month.length < 2) month = "0" + month;
-    if (day.length < 2) day = "0" + day;
-
-    return [year, month, day].join("-");
-  };
 
   let total = 0;
 
@@ -337,10 +352,7 @@ const HomePage = () => {
           (e: any) => e?.date?.startDate === tempDate
         );
 
-        const cash = sameDate?.reduce(
-          (partialSum: any, a: any) => partialSum + parseInt(a?.cash),
-          0
-        );
+        const cash = calcSum(sameDate);
         const dateCash = (cash * (percentage / 12) * 12) / 100;
 
         const worthDate = datediff(
@@ -361,9 +373,7 @@ const HomePage = () => {
 
   const renderSum = (id: any) => {
     const _vy = tableSaving?.filter((e: any) => e.name.id === id);
-    return _vy
-      ?.reduce((partialSum: any, a: any) => partialSum + parseInt(a?.cash), 0)
-      .toLocaleString();
+    return calcSum(_vy)?.toLocaleString();
   };
 
   const renderSummary = () => {
@@ -389,10 +399,7 @@ const HomePage = () => {
         <div className="py-5 text-violet-600 lg:text-xl md:text-lg sm:text-sm font-semibold">
           <div className="flex justify-between gap-3 whitespace-nowrap">
             Ngày Đáo Hạn:{" "}
-            <span className="text-lime-600 whitespace-nowrap">
-              {" "}
-              13 / 2 / 2024
-            </span>
+            <span className="text-lime-600 whitespace-nowrap">{expire}</span>
           </div>
           <div className="flex justify-between gap-3 whitespace-nowrap">
             Lãi Tạm Tính ({percentage}%):{" "}
