@@ -8,6 +8,7 @@ export const FIELD_TYPE = {
   SELECT: "SELECT",
   FILE: "FILE",
   DATE_PICKER: "DATE_PICKER",
+  CHECK_BOX: "CHECK_BOX",
 };
 
 export const INPUT_TYPE = {

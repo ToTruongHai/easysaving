@@ -55,7 +55,7 @@ const Form = ({
 
     setDefaultsValue(defaultValue);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [defaultValue, form, form?.formRef, form?.formRef.curre]);
+  }, [defaultValue, form, form?.formRef, form?.formRef.current]);
 
   return (
     <form
